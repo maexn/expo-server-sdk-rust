@@ -35,9 +35,7 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
-use reqwest::header::{
-    ACCEPT, ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_TYPE, HeaderMap
-};
+use reqwest::header::{HeaderMap, ACCEPT, ACCEPT_ENCODING, CONTENT_ENCODING, CONTENT_TYPE};
 use std::str::FromStr;
 
 use failure::Error;
@@ -284,7 +282,7 @@ pub struct PushNotifier {
     pub url: String,
     pub pushes_per_request: usize,
     pub gzip_policy: GzipPolicy,
-    client: reqwest::Client,
+    client: reqwest::blocking::Client,
 }
 
 impl PushNotifier {
@@ -293,7 +291,7 @@ impl PushNotifier {
             url: "https://exp.host/--/api/v2/push/send".to_string(),
             pushes_per_request: 100,
             gzip_policy: GzipPolicy::default(),
-            client: reqwest::Client::new(),
+            client: reqwest::blocking::Client::new(),
         }
     }
 
@@ -358,7 +356,7 @@ impl PushNotifier {
                 }
             }
         };
-        let mut res = self.request_async(url, &body, should_compress)?;
+        let res = self.request_async(url, &body, should_compress)?;
         let res = res.json::<PushResponse<Value>>()?;
         Ok(res.data)
     }
@@ -368,7 +366,7 @@ impl PushNotifier {
         url: &str,
         body: &str,
         should_compress: bool,
-    ) -> Result<reqwest::Response, Error> {
+    ) -> Result<reqwest::blocking::Response, Error> {
         let mut headers = HeaderMap::new();
         headers.insert(ACCEPT, "application/json".parse().unwrap());
         headers.insert(ACCEPT_ENCODING, "gzip".parse().unwrap());
@@ -384,12 +382,12 @@ impl PushNotifier {
         }
     }
 
-    fn construct_body<T: Into<reqwest::Body>>(
+    fn construct_body<T: Into<reqwest::blocking::Body>>(
         &self,
         url: &str,
         headers: HeaderMap,
         body: T,
-    ) -> Result<reqwest::Response, Error> {
+    ) -> Result<reqwest::blocking::Response, Error> {
         let response = self
             .client
             .post(url)
